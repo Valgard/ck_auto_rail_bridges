@@ -24,12 +24,16 @@ namespace AutoRailBridges
         /// </summary>
         internal static readonly ObjectID[] Priority =
         {
-            ObjectID.WoodBridge, // 4703
+            // Cheapest-first, chosen by the player 2026-08-08: glass comes from sand, stone and
+            // wood are the bulk building materials. The progression bridges keep their ascending
+            // ObjectID order behind them, so a Galaxite or Excavation bridge is only ever spent
+            // once everything cheaper is gone.
+            ObjectID.GlassBridge, // 4724
             ObjectID.StoneBridge, // 4707
+            ObjectID.WoodBridge, // 4703
             ObjectID.ScarletBridge, // 4712
             ObjectID.CoralBridge, // 4717
             ObjectID.GalaxiteBridge, // 4721
-            ObjectID.GlassBridge, // 4724
             ObjectID.GleamWoodBridge, // 4729
             ObjectID.MetalGrateBridge, // 4773
             ObjectID.ExcavationBridge, // 4802

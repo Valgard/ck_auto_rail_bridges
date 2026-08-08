@@ -1,4 +1,5 @@
 using ModSettingsMenu.Settings;
+using PlayerEquipment;
 using PugMod;
 using UnityEngine;
 
@@ -25,12 +26,33 @@ namespace AutoRailBridges
     /// in that case is BurstDisabler.DisableBurstForSystem&lt;EquipmentUpdateSystem&gt;() in
     /// Init, before the patch needs to bind.
     ///
-    /// The settings are registered in Init, not EarlyInit: `enabled` is read per placement at
-    /// runtime, never during the database bake, so there is no bake-time ordering requirement.
+    /// The settings section registers in EarlyInit, not Init: RailPlacementPropertyPatch reads
+    /// `enabled` during Core Keeper's database bake (PlaceableObjectConverter.Convert), which the
+    /// game runs strictly between EarlyInit and Init — binding any later would leave that bake
+    /// reading ModConfig's hardcoded fallback instead of the persisted value, the same bake-timing
+    /// bug the sibling mod RebalanceKeyCrafting hit first. PlaceItemPatch's own runtime read of
+    /// `enabled` is unaffected by binding earlier — it only needs the handle to exist by the time
+    /// gameplay starts, which EarlyInit already guarantees.
     /// </summary>
     public class AutoRailBridgesMod : IMod
     {
-        public void EarlyInit() { }
+        public void EarlyInit()
+        {
+            // RequiresRestart: honest about the bake-time half (RailPlacementPropertyPatch) even
+            // though the runtime half (PlaceItemPatch's Hook 2/3) actually responds immediately —
+            // matches RebalanceKeyCrafting's own bake-time `enabled` toggle for the same reason.
+            ModSettings
+                .Section(this)
+                .Hint(
+                    "Placing a rail where it cannot go lays a bridge from your inventory underneath it first. "
+                        + "Toggling this fully takes effect on the next restart."
+                )
+                .Toggle(out var en, "enabled", true)
+                .RequiresRestart()
+                .Build();
+            ModConfig.Instance.Bind(en);
+            Debug.Log($"[AutoRailBridges] EarlyInit - enabled={ModConfig.Instance.enabled}");
+        }
 
         public void Init()
         {
@@ -42,14 +64,6 @@ namespace AutoRailBridges
             // all; with ...AndJobs the log shows "BurstDisabler: Patched OnUpdate on
             // EquipmentUpdateSystem for job burst disabling" and every hook fires.
             BurstDisabler.DisableBurstForSystemAndJobs<EquipmentUpdateSystem>();
-
-            ModSettings
-                .Section(this)
-                .Hint("Placing a rail where it cannot go lays a bridge from your inventory underneath it first.")
-                .Toggle(out var en, "enabled", true)
-                .Build();
-            ModConfig.Instance.Bind(en);
-            Debug.Log($"[AutoRailBridges] Init - enabled={ModConfig.Instance.enabled}");
         }
 
         public void ModObjectLoaded(Object obj) { }
