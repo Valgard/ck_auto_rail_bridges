@@ -43,3 +43,8 @@ export MOD_REPO_ROOT="$PWD"
 # Visual, Audio, Item, NPC, Quality of Life, Overhaul, Language, World,
 # Library, Other.
 export CK_MODIO_TYPE="Quality of Life|World"
+
+# --- Localisation (read by utils/CLIBuildHelper.cs -> LocalizationGenerator.GenerateFromEnv) ---
+# LOC_TABLE (the shared CK language-address table) is inherited from the parent core_keeper/.envrc.
+export LOC_YAML="$PWD/localization/localization.yaml"
+export LOC_OUT="$PWD/unity/$MOD_NAME/Localization/Generated"

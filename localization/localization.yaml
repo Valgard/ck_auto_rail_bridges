@@ -1,0 +1,9 @@
+AutoRailBridges-Config:
+  _hint:
+    hint: "Section hint under the Auto Rail Bridges heading."
+    en: "Placing a rail where it cannot go lays a bridge from your inventory underneath it first."
+    de: "Beim Platzieren einer Schiene auf untragfähigem Grund wird zuerst eine Brücke aus dem Inventar darunter gelegt."
+  enabled:
+    hint: "Master on/off toggle label."
+    en: "Enabled"
+    de: "Aktiviert"
