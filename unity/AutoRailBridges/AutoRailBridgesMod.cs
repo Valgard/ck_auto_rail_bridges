@@ -19,7 +19,11 @@ namespace AutoRailBridges
 
         public void Init()
         {
-            ModSettings.Section(this).Toggle(out var en, "enabled", true).Build();
+            ModSettings
+                .Section(this)
+                .Hint("Placing a rail where it cannot go lays a bridge from your inventory underneath it first.")
+                .Toggle(out var en, "enabled", true)
+                .Build();
             ModConfig.Instance.Bind(en);
             Debug.Log($"[AutoRailBridges] Init - enabled={ModConfig.Instance.enabled}");
         }
