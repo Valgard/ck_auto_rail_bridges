@@ -10,25 +10,17 @@ namespace AutoRailBridges
     /// </summary>
     public sealed class AutoRailBridgesMod : IMod
     {
-        public void EarlyInit()
-        {
-        }
+        public void EarlyInit() { }
 
         public void Init()
         {
             Debug.Log("[AutoRailBridges] Mod initialized.");
         }
 
-        public void ModObjectLoaded(Object obj)
-        {
-        }
+        public void ModObjectLoaded(Object obj) { }
 
-        public void Shutdown()
-        {
-        }
+        public void Shutdown() { }
 
-        public void Update()
-        {
-        }
+        public void Update() { }
     }
 }
