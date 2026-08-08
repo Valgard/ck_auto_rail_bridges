@@ -17,17 +17,21 @@ namespace AutoRailBridges
     /// (Pug.Other:296019), so from there the flags could not be conditioned on actually owning
     /// a bridge — the cursor would go green with an empty inventory.
     ///
-    /// Why it CLEARS the flags unconditionally, before any other check: vanilla initialises
-    /// them in PlacementHandler.Activate, called from
-    /// SelectedEquipmentChangeSystem.EquippedSlotChangeJob (Pug.Other:427117, call at :427333) —
-    /// an equipment-CHANGE system, not a per-tick one. A hook that only clears on some return
-    /// paths (no bridge found) but not others (mod disabled mid-aim; the found bridge's own
-    /// properties failing to resolve) would leave a borrowed flag set with nothing behind it to
-    /// build from, and no later equipment change to have Activate clean it up. Clearing first —
-    /// ahead of the enabled check and the bridge search — turns every one of those paths into
-    /// "vanilla for a rail" (all four false) by construction, instead of relying on each path to
-    /// remember to clear individually. It is safe because the hook only clears while a rail is
-    /// held; holding anything else returns before touching the flags at all.
+    /// Why it CLEARS the flags unconditionally, before any other check: the result of this hook
+    /// must depend only on the current inventory, never on whatever the four flags happened to
+    /// be when this call started. Clearing first — ahead of the enabled check and the bridge
+    /// search — turns every return path (mod disabled mid-aim; no bridge found; the found
+    /// bridge's own properties failing to resolve) into "vanilla for a rail" (all four false) by
+    /// construction, instead of relying on each path to remember to clear individually. This does
+    /// NOT rest on any assumption about when vanilla itself re-initialises these flags, nor on
+    /// the relative ordering of the two systems: SelectedEquipmentChangeSystem in fact calls
+    /// PlacementHandler.Activate on every tick, not only on an equipment change —
+    /// OnUpdate schedules EquippedSlotChangeJob unconditionally (Pug.Other:428254-428257, no
+    /// change filter on the job's queries), and the Activate call at :427333 sits outside the
+    /// job's own equip-change branch, gated only on the equipped slot's type. So vanilla does
+    /// reset them too, but this hook is correct whether or not that holds. It is safe because the
+    /// hook only clears while a rail is held; holding anything else returns before touching the
+    /// flags at all.
     /// </summary>
     [HarmonyPatch]
     public static class PlacementPatch
