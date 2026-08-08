@@ -25,6 +25,8 @@ MonoBehaviour:
     dependencies:
     - modName: CoreLib
       required: 1
+    - modName: ModSettingsMenu
+      required: 1
   modPath: Assets/AutoRailBridges
   forceReimport: 1
   buildBundles: 1
