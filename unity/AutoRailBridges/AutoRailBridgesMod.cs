@@ -9,26 +9,9 @@ namespace AutoRailBridges
     /// Bootstrap. Harmony patch classes are auto-discovered by the loader, so Init does no
     /// manual PatchAll.
     ///
-    /// Open question, not yet settled by reading alone: whether a BurstDisabler is needed for
-    /// the placement-path targets (PlacementHandler.UpdatePlaceablePosition,
-    /// PlaceObjectSlot.PlaceItem, EntityUtility.AddTile). Expectation is that none is needed —
-    /// they are reached through managed calls despite sitting inside a Burst-compiled system,
-    /// the same way the sibling mod reusable-cattle-box patches PlaceObjectSlot.PlaceItem with
-    /// no BurstDisabler and ships working; PlaceItem is called from the same UpdateEquipment as
-    /// our targets, and PlaceItem itself calls UnityEngine.Debug.LogWarning — Burst cannot
-    /// compile a managed call, so it falls back to Mono for that method, meaning [BurstCompile]
-    /// on the caller is an intent, not a guarantee for every callee. Counter-evidence pointing
-    /// the other way: EquipmentUpdateSystem (Pug.Other:419765) and its nested UpdateJob
-    /// (:419770) both carry [BurstCompile] (:419761, :419767), and Execute() calls
-    /// PlaceObjectSlot.UpdateEquipment (:419898-419899), which calls our targets every tick. The
-    /// in-game check settles it: if the prefix binds (no "Undefined target method" in
-    /// Player.log) but never visibly fires, the target is Burst-inlined after all here. Fallback
-    /// in that case is BurstDisabler.DisableBurstForSystem&lt;EquipmentUpdateSystem&gt;() in
-    /// Init, before the patch needs to bind.
-    ///
     /// The settings section registers in EarlyInit, not Init: RailPlacementPropertyPatch reads
-    /// `enabled` during Core Keeper's database bake (PlaceableObjectConverter.Convert), which the
-    /// game runs strictly between EarlyInit and Init — binding any later would leave that bake
+    /// `enabled` during Core Keeper's database bake (PugDatabasePostConverter.PostConvert), which
+    /// the game runs strictly between EarlyInit and Init — binding any later would leave that bake
     /// reading ModConfig's hardcoded fallback instead of the persisted value, the same bake-timing
     /// bug the sibling mod RebalanceKeyCrafting hit first. PlaceItemPatch's own runtime read of
     /// `enabled` is unaffected by binding earlier — it only needs the handle to exist by the time
