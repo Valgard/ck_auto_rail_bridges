@@ -11,8 +11,8 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d83df2ae64ce1e94f9c006b9d326bf02, type: 3}
   m_Name: AutoRailBridges_modio
-  m_EditorClassIdentifier:
-  modId: 0
+  m_EditorClassIdentifier: 
+  modId: 6295455
   modSettings: {fileID: 11400000, guid: 363e25ab3cad40759d81fab4d43e37ca, type: 2}
   logo: {fileID: 0}
-  summary:
+  summary: 
