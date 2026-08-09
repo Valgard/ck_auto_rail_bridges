@@ -9,6 +9,8 @@ pit without a bridge already there and nothing happens at all.
 This mod collapses that into a single click. Put down a rail where it cannot
 go, and a bridge from your inventory goes down underneath it first.
 
+![Rails being laid straight across a chasm, wood bridges appearing underneath](https://raw.githubusercontent.com/Valgard/ck_auto_rail_bridges/main/sources/ck_auto_rail_bridges_wood.gif)
+
 ## What it does
 
 - Places a bridge from your inventory automatically whenever you place a rail
@@ -19,6 +21,11 @@ go, and a bridge from your inventory goes down underneath it first.
 - Leaves ordinary placement completely untouched — on solid ground, rails
   behave exactly as they always have.
 - Can be switched off in the in-game mod settings.
+
+Carrying stone bridges instead? Then those are what gets placed — the mod
+always reaches for the highest-priority bridge you actually have on you:
+
+![The same crossing built with stone bridges instead of wood](https://raw.githubusercontent.com/Valgard/ck_auto_rail_bridges/main/sources/ck_auto_rail_bridges_stone.gif)
 
 ## Good to know
 
