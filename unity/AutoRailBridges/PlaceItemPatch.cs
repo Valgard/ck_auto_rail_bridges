@@ -8,139 +8,98 @@ using Unity.Mathematics;
 namespace AutoRailBridges
 {
     /// <summary>
-    /// Hooks 2 and 3, plus a clearing postfix.
+    /// Two hooks: one captures the placement context, the other reacts to the rail tile actually
+    /// being queued.
     ///
-    /// Why not simply do the work in a PlaceItem prefix: PlaceItem runs more often than a
-    /// placement happens, and it protects itself INSIDE the method — !canPlaceObject
-    /// (Pug.Other:311322), the tilePlacementTimer guard inside CanPlaceItem (called at :311332;
-    /// the timer checks themselves live at :311538-:311555, not :295533 — that line is unrelated
-    /// code in a different method entirely), the "same tile within 1s" duplicate check (:311337),
-    /// CanConsumeEntityInSlot (:311349) and the creative/placeable-prefab check (:311353). A
-    /// prefix runs before ALL of them, so debiting a bridge there loses one item per discarded
-    /// input tick.
+    /// Why the context comes from UpdateEquipment and not PlaceItem: PlaceItem is the natural
+    /// place, but it is not a place every mod passes through. PlacementPlus (mod.io 3400322)
+    /// prefixes PlaceObjectSlot.UpdateEquipment with `return false` and runs its own
+    /// ObjectPlacementLogic.PlaceItemGrid instead, so vanilla's PlaceItem is never called and a
+    /// prefix there is silently dead. Measured 2026-08-09: with PlacementPlus active, a prefix on
+    /// PlaceItem fired zero times while rails were being placed.
     ///
-    /// EntityUtility.AddTile (called at :311379, immediately before vanilla's own
-    /// ConsumeEntityAt at :311382) is the first point past every one of those guards. It is not
-    /// the point at which a tile becomes real — AddTile (:256440) only appends to
-    /// TileUpdateBuffer and validity is re-judged when the buffer is applied — but "past every
-    /// guard" is the property this design needs.
+    /// EntityUtility.AddTile, however, is unavoidable. Queuing a tile means writing into the
+    /// TileUpdateBuffer, and that is the one utility that does it — PlacementPlus calls it too
+    /// (ObjectPlacementLogic.cs:276 and :555). A mod can replace the decision of *whether and
+    /// where* to place without replacing the act of placing. So AddTile is where this mod does its
+    /// work, and UpdateEquipment — which runs in both worlds, ours and PlacementPlus's, because
+    /// HarmonyPriority.First puts our prefix ahead of theirs — is only there to hand it the
+    /// context AddTile's own parameters do not carry: which player, which inventory, which tiles.
+    ///
+    /// Deciding per tile rather than per click is what makes PlacementPlus's grid mode work for
+    /// free: every rail in a dragged rectangle arrives as its own AddTile call and gets its own
+    /// bridge, until the inventory runs out.
     ///
     /// Ordering: both tiles go into one TileUpdateBuffer, bridge first. The buffer is reversed
     /// TWICE on its way into the world — UpdateSubMapCommon.FilterUpdates (:240546) walks it
     /// backwards while building addList, and ApplyAdd (:241602) walks addList backwards — so
-    /// insertion order survives and the bridge is applied first. That is what
-    /// GetNeededTile(rail) requires: a rail needs `ground` or `bridge` (Pug.Base:18124). A
-    /// single added reversal anywhere in that chain would invert this; re-check after game
-    /// updates.
+    /// insertion order survives and the bridge is applied first. That is what GetNeededTile(rail)
+    /// requires: a rail needs `ground` or `bridge` (Pug.Base:18124). A single added reversal
+    /// anywhere in that chain would invert this; re-check after game updates.
+    ///
+    /// When no bridge is carried, this mod deliberately does nothing and lets the rail drop as a
+    /// pickup item. Suppressing the AddTile call would be worse, not better: both vanilla
+    /// (Pug.Other:311379/311382) and PlacementPlus (:276/:283) debit the item *after* calling
+    /// AddTile, so a blocked tile would still cost the rail — turning a cosmetic annoyance into
+    /// actual item loss.
     /// </summary>
     [HarmonyPatch]
     public static class PlaceItemPatch
     {
-        private struct PendingBridge
+        private struct PlacementContext
         {
             public bool active;
-            public Entity player;
-            public Entity inventoryBufferEntity;
-            public int slotIndex;
-            public ObjectID bridgeID;
-            public int tileset;
-            public int2 position;
-            public bool isCreative;
-            public bool godMode;
-            public float3 playerPosition;
-            public int variation;
+            public EquipmentUpdateAspect aspect;
+            public EquipmentUpdateSharedData sharedData;
+            public LookupEquipmentUpdateData lookupData;
         }
 
-        // All three hooks run in the same tick of the same UpdateEquipment call, on the same
-        // thread (the targets are reached through managed calls — that is why Harmony can bind
-        // them at all). ThreadStatic keeps the record from leaking across worlds when the
-        // client-prediction and server passes run on different threads.
+        // Both hooks run within the same UpdateEquipment call on the same thread (the targets are
+        // reached through managed calls — that is why Harmony can bind them at all). ThreadStatic
+        // keeps the context from leaking across worlds when the client-prediction and server
+        // passes run on different threads. The struct holds ECS refs and lookups that are valid
+        // only for the duration of that call, which is exactly the lifetime the postfix enforces.
         [System.ThreadStatic]
-        private static PendingBridge _pending;
+        private static PlacementContext _ctx;
 
-        // Captured alongside the record so Hook 3, which receives no lookup data, can still
-        // reach the inventory-change buffer. Also ThreadStatic: a plain static here would let
-        // one thread's Hook 3 read a value written moments earlier by a different thread's Hook
-        // 2, even though that other thread's own `_pending.active` (correctly) never sees it —
-        // the read itself would still race. Same rationale as `_pending` above.
-        [System.ThreadStatic]
-        private static BufferLookup<InventoryChangeBuffer> _pendingInventoryBuffer;
-
-        [HarmonyPatch(
-            typeof(PlaceObjectSlot),
-            "PlaceItem",
-            new[] { typeof(EquipmentUpdateAspect), typeof(EquipmentUpdateSharedData), typeof(LookupEquipmentUpdateData) },
-            new[] { ArgumentType.Ref, ArgumentType.Normal, ArgumentType.Normal }
-        )]
+        // No explicit argument-type array: naming the overload that way would require matching
+        // argumentVariations for its `in` parameters. UpdateEquipment is unambiguous, so Harmony
+        // resolves it from the name alone and binds our subset of parameters by name.
+        [HarmonyPatch(typeof(PlaceObjectSlot), nameof(PlaceObjectSlot.UpdateEquipment))]
+        [HarmonyPriority(Priority.First)]
         [HarmonyPrefix]
-        public static bool BeforePlaceItem(
+        public static void BeforeUpdateEquipment(
             in EquipmentUpdateAspect equipmentUpdateAspect,
-            EquipmentUpdateSharedData equipmentUpdateSharedData,
-            LookupEquipmentUpdateData equipmentUpdateLookupData
+            in EquipmentUpdateSharedData equipmentUpdateSharedData,
+            in LookupEquipmentUpdateData equipmentUpdateLookupData
         )
         {
-            _pending = default(PendingBridge);
+            _ctx = default(PlacementContext);
 
             if (!ModConfig.Instance.enabled)
-                return true;
+                return;
 
+            // Cheap gate: without a rail in hand no AddTile call can concern us, and skipping the
+            // capture keeps every other placement in the game untouched.
             if (!BridgeSelector.IsRailEquipped(in equipmentUpdateAspect))
-                return true;
+                return;
 
-            ref PlacementCD placement = ref equipmentUpdateAspect.placementCD.ValueRW;
-            if (!placement.canPlaceObject)
-                return true;
-
-            int3 target = placement.bestPositionToPlaceAt;
-            int2 pos = new int2(target.x, target.z);
-
-            // Mirror exactly what ApplyAdd will check for a rail: `ground` OR `bridge`
-            // (Pug.Base:18124). IsWalkableTile() would be a wider set — it also accepts floor,
-            // rug, litFloor, looseFlooring and rail itself.
-            TileAccessor tiles = equipmentUpdateSharedData.tileAccessor;
-            if (tiles.HasType(pos, TileType.ground) || tiles.HasType(pos, TileType.bridge))
-            {
-                return true; // vanilla can place the rail unaided
-            }
-
-            if (!BridgeSelector.TryFind(in equipmentUpdateAspect, in equipmentUpdateLookupData, out int slotIndex, out ObjectID bridgeID))
-            {
-                // No substrate and no bridge: abort the whole placement. Without this, a stale
-                // canPlaceObject could let vanilla queue a rail over an unbridged pit.
-                return false;
-            }
-
-            _pending = new PendingBridge
+            _ctx = new PlacementContext
             {
                 active = true,
-                player = equipmentUpdateAspect.entity,
-                inventoryBufferEntity = equipmentUpdateSharedData.inventoryUpdateBufferEntity,
-                slotIndex = slotIndex,
-                bridgeID = bridgeID,
-                tileset = PugDatabase.GetEntityObjectInfo(bridgeID, equipmentUpdateSharedData.databaseBank.databaseBankBlob).tileset,
-                position = pos,
-                isCreative = equipmentUpdateSharedData.worldInfoCD.IsWorldModeEnabled(WorldMode.Creative),
-                godMode = equipmentUpdateLookupData.godModeLookup.IsComponentEnabled(equipmentUpdateAspect.entity),
-                playerPosition = equipmentUpdateLookupData.localTransformLookup[equipmentUpdateAspect.entity].Position,
-                variation = equipmentUpdateAspect.equippedObjectCD.ValueRO.containedObject.objectData.variation,
+                aspect = equipmentUpdateAspect,
+                sharedData = equipmentUpdateSharedData,
+                lookupData = equipmentUpdateLookupData,
             };
-            _pendingInventoryBuffer = equipmentUpdateLookupData.inventoryUpdateBuffer;
-
-            return true;
         }
 
-        [HarmonyPatch(
-            typeof(PlaceObjectSlot),
-            "PlaceItem",
-            new[] { typeof(EquipmentUpdateAspect), typeof(EquipmentUpdateSharedData), typeof(LookupEquipmentUpdateData) },
-            new[] { ArgumentType.Ref, ArgumentType.Normal, ArgumentType.Normal }
-        )]
+        // Runs even when PlacementPlus's prefix returns false — Harmony skips remaining prefixes
+        // in that case, but never the postfixes.
+        [HarmonyPatch(typeof(PlaceObjectSlot), nameof(PlaceObjectSlot.UpdateEquipment))]
         [HarmonyPostfix]
-        public static void AfterPlaceItem()
+        public static void AfterUpdateEquipment()
         {
-            // Safety net: if vanilla returned between Hook 2 and Hook 3, the record must not
-            // leak into the next tick.
-            _pending = default(PendingBridge);
+            _ctx = default(PlacementContext);
         }
 
         [HarmonyPatch(
@@ -157,40 +116,54 @@ namespace AutoRailBridges
             DynamicBuffer<TileUpdateBuffer> tileUpdateBuffer
         )
         {
-            if (!_pending.active)
+            if (!_ctx.active)
                 return;
 
-            if (tileType != TileType.rail || !math.all(position == _pending.position))
+            // Also the recursion guard: the bridge this method adds re-enters here as
+            // TileType.bridge and stops at this line.
+            if (tileType != TileType.rail)
                 return;
 
-            PendingBridge p = _pending;
-            _pending = default(PendingBridge); // consume before doing work — never fire twice
+            // Mirror exactly what ApplyAdd will check for a rail: `ground` OR `bridge`
+            // (Pug.Base:18124). IsWalkableTile() would be a wider set — it also accepts floor,
+            // rug, litFloor, looseFlooring and rail itself.
+            TileAccessor tiles = _ctx.sharedData.tileAccessor;
+            if (tiles.HasType(position, TileType.ground) || tiles.HasType(position, TileType.bridge))
+                return;
+
+            // No bridge carried: leave the rail alone. It will drop as a pickup item (class
+            // comment explains why suppressing the tile would be worse).
+            if (!BridgeSelector.TryFind(in _ctx.aspect, in _ctx.lookupData, out int slotIndex, out ObjectID bridgeID))
+                return;
+
+            int bridgeTileset = PugDatabase.GetEntityObjectInfo(bridgeID, _ctx.sharedData.databaseBank.databaseBankBlob).tileset;
 
             // Bridge first: two reversals downstream preserve insertion order (class comment).
-            EntityUtility.AddTile(p.tileset, TileType.bridge, p.position, p.isCreative, tileUpdateBuffer);
+            EntityUtility.AddTile(bridgeTileset, TileType.bridge, position, isWorldModeCreative, tileUpdateBuffer);
 
             // optionalTargetObjectID is mandatory here, not optional. InventoryUtility
             // .ConsumeEntityAt (Pug.Other:409860) compares the slot's objectID against it ONLY
             // when it is set; left at None, a queued inventory operation that changed that slot
-            // first would make this consume whatever is now there. With it set, a mismatch
-            // fails the consume instead — the bridge tile is then placed without a debit, which
-            // is the acceptable direction for this failure.
-            DynamicBuffer<InventoryChangeBuffer> buffer = _pendingInventoryBuffer[p.inventoryBufferEntity];
+            // first would make this consume whatever is now there. With it set, a mismatch fails
+            // the consume instead — the bridge tile is then placed without a debit, which is the
+            // acceptable direction for this failure.
+            Entity player = _ctx.aspect.entity;
+            DynamicBuffer<InventoryChangeBuffer> buffer = _ctx.lookupData.inventoryUpdateBuffer[_ctx.sharedData.inventoryUpdateBufferEntity];
             buffer.Add(
                 new InventoryChangeBuffer
                 {
                     inventoryChangeData = Create.ConsumeEntityAt(
-                        p.player,
-                        p.slotIndex,
+                        player,
+                        slotIndex,
                         1,
                         destroy: true,
-                        dontConsume: p.godMode,
-                        p.playerPosition,
-                        p.variation,
+                        dontConsume: _ctx.lookupData.godModeLookup.IsComponentEnabled(player),
+                        _ctx.lookupData.localTransformLookup[player].Position,
+                        _ctx.aspect.equippedObjectCD.ValueRO.containedObject.objectData.variation,
                         default(float3),
-                        p.bridgeID
+                        bridgeID
                     ),
-                    playerEntity = p.player,
+                    playerEntity = player,
                 }
             );
         }
