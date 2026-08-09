@@ -169,10 +169,19 @@ publishing, `../utils/upload.sh` uses the shared
 `CoreKeeperModUtils.CLIPublishHelper.Publish` Editor class the same way as every
 sibling mod: the version comes from the topmost `## [x.y.z]` entry of
 `CHANGELOG.md`. `CK_MODIO_TYPE` is `Quality of Life|World`. The profile logo
-belongs at `unity/AutoRailBridges/Editor/logo.png` — a 1024×1024 transparent PNG
-made with the family logo pipeline (parent `../CLAUDE.md` § Logo / branding).
-Set the mod.io profile type tag to **`Script`** (an `Asset` tag silently disables
-the mod's scripts).
+is `unity/AutoRailBridges/Editor/logo.png` — a 1024×1024 transparent PNG made
+with the family logo pipeline (parent `../CLAUDE.md` § Logo / branding). Its
+per-mod gesture is a brass crane on a teal minecart lowering a bridge plank that
+already carries a section of rail, onto the open end of a half-built bridge; the
+chosen white/black source pair and the rejected candidates are kept in `sources/`
+under the family naming convention. Two notes for future logo work here: the rail
+on the *hanging* plank is the point of the whole image — without it the picture
+reads as "bridges get built" rather than "rails cross chasms" — and this logo
+deliberately drops the pale sticker rim most siblings avoid while keeping the
+golden radial glow. Note `CLIPublishHelper` only rejects a *missing* logo asset,
+never a placeholder one, so the scaffold's empty 0-byte file would have published
+silently had it not been replaced. Set the mod.io profile type tag to **`Script`**
+(an `Asset` tag silently disables the mod's scripts).
 
 ## Conventions
 
