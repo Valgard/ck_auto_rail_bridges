@@ -90,7 +90,9 @@ still runs when a prefix returned `false`, because Harmony skips remaining
 Verified in-game 2026-08-09 with PlacementPlus 2.1.8 active: single rails over a
 pit receive a bridge, and a dragged rectangle of rails receives one bridge per
 rail. Previously confirmed standalone with PlacementPlus disabled through
-`state.json:disabledMods`.
+`state.json:disabledMods`. Both tile types the bake patch grants — `Pit` and
+`Water` — were covered throughout; water was tested alongside pits in every
+round, not inferred from the shared code path.
 
 ## Pros and Cons of the Options
 
