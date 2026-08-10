@@ -3,6 +3,15 @@
 All notable changes to this mod are documented here. The publish pipeline
 reads the topmost `## [x.y.z]` entry as the version to publish.
 
+## [1.0.1] - 2026-08-10
+
+### Fixed
+- **No bridge was laid on a dedicated server.** Rails could still be aimed at a
+  pit or water, but the bridge underneath never appeared and the rail dropped as
+  an item: the placement hooks never became active on the server side. Playing
+  alone or as host was unaffected. Update the mod on the server as well — the
+  fix has to run there.
+
 ## [1.0.0] - 2026-08-09
 
 ### Added
