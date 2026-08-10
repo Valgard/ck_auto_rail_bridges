@@ -1,6 +1,7 @@
 using ModSettingsMenu.Settings;
 using PlayerEquipment;
 using PugMod;
+using Unity.Entities;
 using UnityEngine;
 
 namespace AutoRailBridges
@@ -47,6 +48,17 @@ namespace AutoRailBridges
             // all; with ...AndJobs the log shows "BurstDisabler: Patched OnUpdate on
             // EquipmentUpdateSystem for job burst disabling" and every hook fires.
             BurstDisabler.DisableBurstForSystemAndJobs<EquipmentUpdateSystem>();
+
+            // ...and that registration only takes effect for worlds BurstDisabler.AddWorld has
+            // already seen. Its sole caller is ECSManager.StartEcs, which snapshots whatever is
+            // registered at that moment, and a dedicated server runs IMod.Init() *after* StartEcs —
+            // so there the snapshot was empty, the job stayed Bursted and the hooks were dead
+            // again, exactly the 2026-08-08 symptom but only in multiplayer. Note the
+            // "Patched OnUpdate ... for job burst disabling" log line does NOT prove the bypass is
+            // armed: it comes from the AndJobs variant's dependency patch, which is set regardless.
+            // No-op on the client, where Init() runs first; the registry is a set.
+            foreach (var world in World.All)
+                BurstDisabler.AddWorld(world);
         }
 
         public void ModObjectLoaded(Object obj) { }

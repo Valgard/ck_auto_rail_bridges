@@ -49,7 +49,9 @@ half means rails drop as items.
 - **`AutoRailBridgesMod` (`IMod`)** — bootstrap. Registers the settings section
   in `EarlyInit` (see below) and calls
   `BurstDisabler.DisableBurstForSystemAndJobs<EquipmentUpdateSystem>()` in
-  `Init`. Harmony patch classes are auto-discovered; there is no `PatchAll`.
+  `Init`, followed by a manual `BurstDisabler.AddWorld` pass over `World.All`
+  (see below — without it the hooks are dead on a dedicated server). Harmony
+  patch classes are auto-discovered; there is no `PatchAll`.
 - **`RailPlacementPropertyPatch`** — prefix on
   `PugDatabasePostConverter.PostConvert`, adds `ObjectID.Pit` and
   `ObjectID.Water` to the rail prefab's `canBePlacedOnObjects`.
@@ -131,6 +133,20 @@ calls `PlaceObjectSlot.UpdateEquipment` (`:419898`). The plain
 so every patch on a method reached from the job stays dead. Verified in-game
 2026-08-08: with the plain variant **no** hook fired at all.
 
+Choosing the right variant is only half of it — the registration has to reach the
+world as well, which is why `Init` follows it with a manual
+`BurstDisabler.AddWorld` pass over `World.All`. `AddWorld`'s sole caller is
+`ECSManager.StartEcs`, and it **snapshots** whatever is registered at that
+moment; a dedicated server runs `IMod.Init()` *after* `StartEcs`, so the snapshot
+was empty, the job stayed Bursted and the hooks were dead again — the exact
+2026-08-08 symptom, but only in multiplayer. Beware the misleading evidence here:
+the `BurstDisabler: Patched OnUpdate on EquipmentUpdateSystem for job burst
+disabling` line **does appear** in the server log even while the bypass is
+inactive, because it comes from the `AndJobs` variant's dependency patch, which
+is applied regardless of the snapshot. The pass is a no-op in the client
+ordering, and `EarlyInit()` is not an alternative — `TypeManager` is not
+initialised that early. Full mechanism in the parent `../CLAUDE.md`.
+
 ### Why the settings section registers in `EarlyInit`
 
 `RailPlacementPropertyPatch` reads `enabled` during the database bake, which the
@@ -163,9 +179,9 @@ To test coexistence with another installed mod, toggle it through
 
 ## Publishing to mod.io
 
-Not yet published — the real mod ID in
-`unity/AutoRailBridges/Editor/AutoRailBridges_modio.asset` is still `0`. When
-publishing, `../utils/upload.sh` uses the shared
+Published; the real mod ID in
+`unity/AutoRailBridges/Editor/AutoRailBridges_modio.asset` is `6295455`.
+`../utils/upload.sh` uses the shared
 `CoreKeeperModUtils.CLIPublishHelper.Publish` Editor class the same way as every
 sibling mod: the version comes from the topmost `## [x.y.z]` entry of
 `CHANGELOG.md`. `CK_MODIO_TYPE` is `Quality of Life|World`. The profile logo
