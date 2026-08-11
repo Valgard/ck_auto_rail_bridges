@@ -133,6 +133,40 @@ calls `PlaceObjectSlot.UpdateEquipment` (`:419898`). The plain
 so every patch on a method reached from the job stays dead. Verified in-game
 2026-08-08: with the plain variant **no** hook fired at all.
 
+The two variants differ by exactly one thing, and it is not a thoroughness bonus
+— it is the mechanism. `AndJobs` adds a postfix calling
+`state.Dependency.Complete()` (`PugMod.SDK.Runtime:924`, applied via
+`CompleteDependencyAfterUpdatePatch` at `:943`). The bypass itself is a *window*:
+a prefix/postfix pair on `Unity.Entities.WorldUnmanagedImpl.UpdateSystem`
+(`:960`) flips `BurstCompiler.Options.EnableBurstCompilation` off for the
+duration of that one system's update and restores it right after. An async job is
+*scheduled* inside that window but *runs* after it, once Burst is back on — so it
+stays Bursted and patches on anything it reaches never bind. `Complete()` drags
+the execution into the window. This is a reading of the code that fits the
+2026-08-08 observation, not an independently proven claim; treat it as the
+working model.
+
+The corollary decides the variant for any future system: **if the patch target is
+the system's own `OnUpdate`, the plain variant suffices and costs almost
+nothing** — the shell runs managed, but the jobs it schedules stay Bursted and
+keep running async on a worker thread, so the real work never leaves native code.
+That is the case in the sibling mods DisableDurability, FasterTalents and
+FasterPetTalents, all three of which patch `<System>.OnUpdate` and use the plain
+call. Only a target *inside* a Bursted job needs `AndJobs`, and only then is the
+sync point paid at all.
+
+Cost in practice here: no perceptible impact (observed, never profiled —
+2026-08-11), including while laying rails across pits and water, where the hook
+fires on every single placement. Two properties keep it cheap and both must be
+re-checked before assuming the same for another system: the query iterates player
+entities only (`EquipmentUpdateAspect` requires `ClientInput`, `PlayerStateCD`,
+`PlayerGhost` — `Pug.Other:419114`), and the job is scheduled with `Schedule()`,
+not `ScheduleParallel()` (`:420660`), so it was single-threaded anyway and
+`Complete()` costs only the frame overlap. PlacementPlus un-Bursts the same system
+with the same call, and running both at once was equally unremarkable; double
+registration is harmless (the registry is a `HashSet`, a second `Complete()` is a
+no-op).
+
 Choosing the right variant is only half of it — the registration has to reach the
 world as well, which is why `Init` follows it with a manual
 `BurstDisabler.AddWorld` pass over `World.All`. `AddWorld`'s sole caller is
