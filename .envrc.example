@@ -44,6 +44,11 @@ export MOD_REPO_ROOT="$PWD"
 # Library, Other.
 export CK_MODIO_TYPE="Quality of Life|World"
 
+# Forum tags for this mod's thread in the Core Keeper Discord's
+# #available-mods channel — PIPE-separated, because "Misc / Other" contains
+# spaces. Read by utils/discord_post.py; Discord allows at most five.
+export CK_DISCORD_TAGS="Transportation|Automation|Utilities"
+
 # --- Localisation (read by utils/CLIBuildHelper.cs -> LocalizationGenerator.GenerateFromEnv) ---
 # LOC_TABLE (the shared CK language-address table) is inherited from the parent core_keeper/.envrc.
 export LOC_YAML="$PWD/localization/localization.yaml"
