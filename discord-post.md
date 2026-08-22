@@ -16,7 +16,7 @@ nothing is consumed.
 ## Good to know
 
 The bridge order is fixed in this version; making it configurable is planned.
-The on/off switch in **Options → Mod Settings** applies after a restart,
+The on/off switch in **Options → Mod settings** applies after a restart,
 because part of the work happens while the world loads.
 
 ## Compatibility
