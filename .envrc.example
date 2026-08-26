@@ -45,6 +45,16 @@ export CK_MODIO_TYPE="Quality of Life|World"
 # spaces. Read by utils/discord_post.py; Discord allows at most five.
 export CK_DISCORD_TAGS="Transportation|Automation|Utilities"
 
+# Images and clips for the post, beyond the logo — PIPE-separated, in the order
+# they should appear. A relative path becomes an attachment, an http(s) URL
+# becomes its own follow-up message (the only route for a clip past Discord's
+# upload ceiling). Empty is legitimate here, unlike CK_DISCORD_TAGS: it means
+# the mod has nothing to show beyond its logo.
+# URLs rather than paths: these clips are 35 and 38 MB, far past what can be
+# attached, and Discord embeds an external media URL regardless of size. The
+# post's own wording ('the clips below') depends on them arriving this way.
+export CK_DISCORD_MEDIA="https://raw.githubusercontent.com/Valgard/ck_auto_rail_bridges/main/sources/ck_auto_rail_bridges_wood.gif|https://raw.githubusercontent.com/Valgard/ck_auto_rail_bridges/main/sources/ck_auto_rail_bridges_stone.gif"
+
 # --- Localisation (read by utils/CLIBuildHelper.cs -> LocalizationGenerator.GenerateFromEnv) ---
 # LOC_TABLE (the shared CK language-address table) is inherited from the parent core_keeper/.envrc.
 export LOC_YAML="$PWD/localization/localization.yaml"
