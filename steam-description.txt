@@ -1,0 +1,30 @@
+[h1]Auto Rail Bridges[/h1]
+
+Placing a rail across a pit or over open water normally does nothing at all — the rail has no ground to sit on, so the game refuses the placement. This mod turns that into a single click: place a rail where there's no ground, and a bridge from your inventory goes down underneath it automatically.
+
+When you're carrying more than one bridge type, the mod always reaches for the same one first: Glass, then Stone, then Wood, then Scarlet, Coral, Galaxite, Gleam Wood, Metal Grate, and finally Industrial Bridge. That priority order is fixed in this version.
+
+[b]No bridge, no placement — but nothing is lost.[/b] If you aren't carrying any bridge at all, the rail simply drops back as a pickup item instead of being wasted. Pick it up, bring bridges, and try again. On solid ground, rails behave exactly as they always have — this only changes what happens over a pit or water.
+
+[h2]Compatibility[/h2]
+
+Works alongside PlacementPlus, including its grid placement — drag a rectangle of rails across a pit and each one gets its own bridge, for as long as your bridges last.
+
+[h2]Settings[/h2]
+
+Toggle the mod on or off in-game under Options → Mod settings. The change takes effect after restarting the game, since part of the mod's work happens while the world is being loaded.
+
+[b]Multiplayer:[/b] install this mod on both the client and the server. It changes what the world considers a valid placement, so both sides need to agree.
+
+[h2]Requirements[/h2]
+
+[list]
+[*] CoreLib (required)
+[*] Mod Settings Menu (required) — hosts the in-game settings screen
+[/list]
+
+These are listed as required items on this Workshop page — Steam will offer to install them alongside the mod.
+
+[hr][/hr]
+
+Built with the official Pugstorm Core Keeper Mod SDK. Personal-use, non-commercial (Core Keeper EULA). Not affiliated with or endorsed by Pugstorm.
