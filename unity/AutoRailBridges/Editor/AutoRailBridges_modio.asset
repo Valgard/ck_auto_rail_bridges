@@ -15,4 +15,5 @@ MonoBehaviour:
   modId: 6295455
   modSettings: {fileID: 11400000, guid: 363e25ab3cad40759d81fab4d43e37ca, type: 2}
   logo: {fileID: 0}
-  summary: 
+  summary: Placing a rail where it cannot go lays a bridge from your inventory underneath
+    it first.
