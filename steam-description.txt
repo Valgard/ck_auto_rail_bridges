@@ -16,15 +16,6 @@ Toggle the mod on or off in-game under Options → Mod settings. The change take
 
 [b]Multiplayer:[/b] install this mod on both the client and the server. It changes what the world considers a valid placement, so both sides need to agree.
 
-[h2]Requirements[/h2]
-
-[list]
-[*] CoreLib (required)
-[*] Mod Settings Menu (required) — hosts the in-game settings screen
-[/list]
-
-These are listed as required items on this Workshop page — Steam will offer to install them alongside the mod.
-
 [hr][/hr]
 
 Built with the official Pugstorm Core Keeper Mod SDK. Personal-use, non-commercial (Core Keeper EULA). Not affiliated with or endorsed by Pugstorm.
