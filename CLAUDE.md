@@ -201,6 +201,13 @@ read-only HUD mods, which take `1` so they never block joining unmodded servers.
 `unity/` is the canonical source — a 1:1 mirror of the SDK's `Assets/` tree
 holding every file the Editor generates for the mod.
 
+## Not yet built
+
+`docs/roadmap.md` carries one point, and it is not code: this mod is documented
+entirely in motion — `sources/` holds a GIF and an MP4 per bridge type and no
+still image at all — while both galleries want a still, and the Workshop page
+can carry a video only as a linked YouTube upload.
+
 ## macOS / CrossOver
 
 Deployed through the fake-mod.io workaround (see parent `../CLAUDE.md`). This
