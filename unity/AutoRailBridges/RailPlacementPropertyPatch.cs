@@ -37,16 +37,19 @@ namespace AutoRailBridges
     /// part of the EDITOR-side asset-conversion pipeline; the shipped game's database is already
     /// baked and never runs it again. The method that DOES run at world/database conversion time
     /// in the shipped game is PugDatabasePostConverter.PostConvert(GameObject authoring)
-    /// (Pug.Other:3474-3478), proven by the sibling mod RebalanceKeyCrafting's
+    /// (Pug.Other:3442, 3504), proven by the sibling mod RebalanceKeyCrafting's
     /// KeyRecipeCostPatch, which patches exactly that method to rewrite vanilla recipe costs and
     /// ships working. PostConvert does not read canBePlacedOnObjects itself — it never needed to
     /// — but it walks every prefab's authoring GameObject on its way to building the immutable
-    /// PugDatabaseBank blob (Pug.Other:3492-3512: PugDatabaseAuthoring.prefabList ->
-    /// DatabaseConversionUtility.GetPrefabList (Pug.Other:3598) -> PrefabData.ObjectInfo
-    /// (Pug.Other:3583) -> ObjectInfo.prefabInfos (Pug.Base:4503) -> PrefabInfo.ecsPrefab
-    /// (Pug.Base:4572) -> ecsPrefab.GetComponent&lt;IEntityMonoBehaviourData&gt;()
-    /// (Pug.Base:4574)), which is exactly the GameObject a PlaceableObjectAuthoring component
-    /// would sit on as a sibling. Editing the list there, before this same PostConvert call
+    /// PugDatabaseBank blob. Game 1.3 turned that walk around: it used to start from the database
+    /// component (PugDatabaseAuthoring.prefabList -> DatabaseConversionUtility.GetPrefabList ->
+    /// PrefabData.ObjectInfo -> ObjectInfo.prefabInfos -> PrefabInfo.ecsPrefab), and none of those
+    /// exist any more. It now starts from the data blocks and reads the ObjectInfo off the prefab
+    /// (Pug.Other:3513: ScriptableData.GetDataBlocks&lt;EntityAuthoringDataBlock&gt;() ->
+    /// block.prefab -> prefab.GetComponent&lt;IEntityMonoBehaviourData&gt;() (Pug.Other:3529) ->
+    /// .ObjectInfo (Pug.Other:3535)). That prefab is exactly the GameObject a
+    /// PlaceableObjectAuthoring component would sit on as a sibling, so the reachable set is
+    /// unchanged — only the direction is. Editing the list there, before this same PostConvert call
     /// finishes, is early enough: PlaceableObjectConverter.Convert already ran during the
     /// original SDK bake and froze its own snapshot into a byte[] property blob
     /// (PugProperties:961-983) irrespective of what this prefix does — but ObjectCanBePlacedOnObject
@@ -60,12 +63,12 @@ namespace AutoRailBridges
     /// Identifying Rail: unlike Convert (which only ever received the isolated
     /// PlaceableObjectAuthoring instance, forcing a fragile ObjectAuthoring.objectName string
     /// compare — the assumption that broke last), PostConvert's own prefab walk exposes
-    /// ObjectInfo.objectID directly (Pug.Base:4455) on the very same ObjectInfo that leads to the
-    /// ecsPrefab GameObject. So this patch filters on `item.ObjectInfo.objectID ==
-    /// ObjectID.Rail` — an enum comparison, not a string comparison — then reaches
-    /// PlaceableObjectAuthoring via that ObjectInfo's own prefabInfos/ecsPrefab chain, the same
-    /// chain vanilla PostConvert itself uses one line later to fetch IEntityMonoBehaviourData off
-    /// that identical GameObject.
+    /// ObjectInfo.objectID directly (Pug.Base:4623) on the ObjectInfo read off that prefab. So
+    /// this patch filters on `objectInfo.objectID == ObjectID.Rail` — an enum comparison, not a
+    /// string comparison — and then takes PlaceableObjectAuthoring off that very same GameObject,
+    /// the one vanilla PostConvert fetched IEntityMonoBehaviourData from a moment earlier. Since
+    /// 1.3 that is a single object rather than a chain to walk, which is why the loop body no
+    /// longer iterates prefabInfos.
     ///
     /// Idempotency: no HashSet-of-processed-instances guard, unlike KeyRecipeCostPatch. Scaling a
     /// number is not naturally idempotent (run it twice, it halves twice), but "add to a list if
@@ -103,32 +106,43 @@ namespace AutoRailBridges
                 return true;
             if (authoring == null)
                 return true;
-            if (!authoring.TryGetComponent<PugDatabaseAuthoring>(out var dbAuthoring))
+            if (!authoring.TryGetComponent<PugDatabaseAuthoring>(out _))
                 return true;
 
-            List<DatabaseConversionUtility.PrefabData> prefabList = DatabaseConversionUtility.GetPrefabList(dbAuthoring);
+            // 1.3 removed DatabaseConversionUtility and emptied PugDatabaseAuthoring, which now
+            // only marks the object. Vanilla's own PostConvert reads the prefabs from
+            // ScriptableData instead (Pug.Other:3513), so this walks the same source it does.
+            // PrefabInfo.ecsPrefab became PrefabInfo.authoring in the same release
+            // ([FormerlySerializedAs("ecsPrefab")], Pug.Base:4736).
+            IReadOnlyList<EntityAuthoringDataBlock> blocks = ScriptableData.GetDataBlocks<EntityAuthoringDataBlock>();
+            if (blocks == null)
+                return true;
+
             bool railFound = false;
-            foreach (DatabaseConversionUtility.PrefabData item in prefabList)
+            foreach (EntityAuthoringDataBlock block in blocks)
             {
-                if (item.ObjectInfo == null || item.ObjectInfo.objectID != ObjectID.Rail)
+                GameObject blockPrefab = block.prefab;
+                if (blockPrefab == null)
+                    continue;
+                IEntityMonoBehaviourData entityData = blockPrefab.GetComponent<IEntityMonoBehaviourData>();
+                if (entityData == null)
+                    continue;
+                ObjectInfo objectInfo = entityData.ObjectInfo;
+                if (objectInfo == null || objectInfo.objectID != ObjectID.Rail)
                     continue;
                 railFound = true;
 
-                if (item.ObjectInfo.prefabInfos == null)
+                // 1.3 also dropped ObjectInfo.prefabInfos, so there is no list to walk: the data
+                // block's own prefab is the authoring object that used to sit in
+                // prefabInfos[].ecsPrefab, and it is what vanilla reads the ObjectInfo off above.
+                if (!blockPrefab.TryGetComponent(out PlaceableObjectAuthoring placeable))
                     continue;
-                foreach (PrefabInfo prefabInfo in item.ObjectInfo.prefabInfos)
-                {
-                    if (prefabInfo == null || prefabInfo.ecsPrefab == null)
-                        continue;
-                    if (!prefabInfo.ecsPrefab.TryGetComponent(out PlaceableObjectAuthoring placeable))
-                        continue;
-                    if (placeable.canBePlacedOnObjects == null)
-                        continue;
+                if (placeable.canBePlacedOnObjects == null)
+                    continue;
 
-                    AddIfMissing(placeable.canBePlacedOnObjects, ObjectID.Pit);
-                    AddIfMissing(placeable.canBePlacedOnObjects, ObjectID.Water);
-                    Debug.Log("[AutoRailBridges] Rail may now be placed on: " + string.Join(",", placeable.canBePlacedOnObjects));
-                }
+                AddIfMissing(placeable.canBePlacedOnObjects, ObjectID.Pit);
+                AddIfMissing(placeable.canBePlacedOnObjects, ObjectID.Water);
+                Debug.Log("[AutoRailBridges] Rail may now be placed on: " + string.Join(",", placeable.canBePlacedOnObjects));
             }
 
             if (!railFound)
