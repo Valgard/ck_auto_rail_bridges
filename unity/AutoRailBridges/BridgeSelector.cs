@@ -9,9 +9,9 @@ namespace AutoRailBridges
     /// change confined to this class.
     ///
     /// The inventory read needs no extra plumbing: LookupEquipmentUpdateData already carries
-    /// BufferLookup&lt;ContainedObjectsBuffer&gt; containedObjectsBufferLookup (Pug.Other:419083),
+    /// BufferLookup&lt;ContainedObjectsBuffer&gt; containedObjectsBufferLookup (Pug.Other:437073),
     /// which EquipmentUpdateSystem.UpdateJob.Execute reads for equipmentUpdateAspect.entity in
-    /// exactly this way (Pug.Other:419886).
+    /// exactly this way (Pug.Other:437873).
     /// </summary>
     internal static class BridgeSelector
     {

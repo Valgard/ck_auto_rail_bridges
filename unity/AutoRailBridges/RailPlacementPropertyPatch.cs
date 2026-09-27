@@ -13,10 +13,10 @@ namespace AutoRailBridges
     /// database bake time.
     ///
     /// The mechanism bridges actually use: PlacementHandler.ShouldCheckPlaceObjectOnTile
-    /// (Pug.Other:295775) treats the tile under the cursor as a virtual "object" —
+    /// (Pug.Other:305307) treats the tile under the cursor as a virtual "object" —
     /// PugDatabase.TryGetTileItemInfo maps TileType.pit/.water to ObjectID.Pit/.Water — and asks
-    /// ObjectCanBePlacedOnObject (Pug.Other:295898-295930) whether the PLACEMENT PREFAB's own
-    /// "PlaceableObject/canBePlacedOnObjects" list (property hash -789473209, PugProperties:362)
+    /// ObjectCanBePlacedOnObject (Pug.Other:305430-305462) whether the PLACEMENT PREFAB's own
+    /// "PlaceableObject/canBePlacedOnObjects" list (property hash -789473209, PugProperties:862)
     /// contains that virtual ObjectID. That function is a plain membership scan with one veto
     /// ahead of it: canNotBePlaceOnObjects (hash 1757427560) is checked first and blocks
     /// unconditionally on a hit; only then is canBePlaceOnObjects checked, and a hit there
@@ -28,12 +28,12 @@ namespace AutoRailBridges
     ///
     /// Where the edit has to land: before bake, the list is a plain mutable
     /// `public List&lt;ObjectID&gt; canBePlacedOnObjects` field on PlaceableObjectAuthoring
-    /// (Pug.ECS.Authoring:3150) — a MonoBehaviour on the prefab GameObject, not any ObjectInfo
+    /// (Pug.ECS.Authoring:3251) — a MonoBehaviour on the prefab GameObject, not any ObjectInfo
     /// class.
     ///
     /// Corrected hook: this used to prefix PlaceableObjectConverter.Convert
     /// (SingleAuthoringComponentConverter&lt;PlaceableObjectAuthoring&gt;,
-    /// Pug.ECS.Conversion:2825) — measured in-game to fire ZERO times, because that converter is
+    /// Pug.ECS.Conversion:2967) — measured in-game to fire ZERO times, because that converter is
     /// part of the EDITOR-side asset-conversion pipeline; the shipped game's database is already
     /// baked and never runs it again. The method that DOES run at world/database conversion time
     /// in the shipped game is PugDatabasePostConverter.PostConvert(GameObject authoring)
@@ -52,9 +52,9 @@ namespace AutoRailBridges
     /// unchanged — only the direction is. Editing the list there, before this same PostConvert call
     /// finishes, is early enough: PlaceableObjectConverter.Convert already ran during the
     /// original SDK bake and froze its own snapshot into a byte[] property blob
-    /// (PugProperties:961-983) irrespective of what this prefix does — but ObjectCanBePlacedOnObject
+    /// (PugProperties:1236-1258) irrespective of what this prefix does — but ObjectCanBePlacedOnObject
     /// reads that frozen list value directly off the still-live PlaceableObjectAuthoring field at
-    /// prefab level (Pug.Other:295775-295930 reads through PugDatabase.objectPropertiesCD, whose
+    /// prefab level (Pug.Other:305307-305462 reads through PugDatabase.objectPropertiesCD, whose
     /// backing property values are (re)serialized from the authoring components once per world's
     /// own PostConvert pass), so mutating canBePlacedOnObjects here — before this PostConvert call
     /// returns — is still ahead of the point where THIS world's ObjectPropertiesCD blob for Rail
@@ -81,8 +81,8 @@ namespace AutoRailBridges
     ///
     /// What this patch does NOT fix, and was never asked to: TileType.rail still requires a
     /// ground or bridge SUBSTRATE at the moment its tile update is actually applied
-    /// (TileType.GetNeededTile, Pug.Base:18111-18154 — case TileType.rail needs
-    /// [ground, bridge]; enforced in ApplyAdd, Pug.Other:241598-241640). A bare pit satisfies
+    /// (TileType.GetNeededTile, Pug.Base:19957-20027 — case TileType.rail needs
+    /// [ground, bridge]; enforced in ApplyAdd, Pug.Other:248696-248738). A bare pit satisfies
     /// neither, so this permission fix alone would make the cursor lie. That gap is already
     /// closed by PlaceItemPatch.cs's Hook 2/3 (untouched by this task), which inject a bridge
     /// tile ahead of the rail's own tile update whenever the destination lacks one — they were
@@ -113,7 +113,7 @@ namespace AutoRailBridges
             // only marks the object. Vanilla's own PostConvert reads the prefabs from
             // ScriptableData instead (Pug.Other:3513), so this walks the same source it does.
             // PrefabInfo.ecsPrefab became PrefabInfo.authoring in the same release
-            // ([FormerlySerializedAs("ecsPrefab")], Pug.Base:4736).
+            // ([FormerlySerializedAs("ecsPrefab")], Pug.Base:4746).
             IReadOnlyList<EntityAuthoringDataBlock> blocks = ScriptableData.GetDataBlocks<EntityAuthoringDataBlock>();
             if (blocks == null)
                 return true;

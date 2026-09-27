@@ -109,7 +109,7 @@ call and gets its own bridge until the inventory runs out.
 ### Why a missing bridge must not veto the placement
 
 Suppressing the `AddTile` call when no bridge is carried looks like the tidy
-behaviour and is the harmful one. Both vanilla (`Pug.Other:311379`/`311382`) and
+behaviour and is the harmful one. Both vanilla (`Pug.Other:322046`/`322049`) and
 PlacementPlus (`:276`/`:283`) debit the item **after** calling `AddTile`, so a
 blocked tile still costs the rail. Letting it through only drops a pickup item.
 The mod therefore does nothing in that case.
@@ -118,27 +118,27 @@ The mod therefore does nothing in that case.
 
 Both tiles go into one `TileUpdateBuffer`, bridge first. The buffer is reversed
 **twice** on its way into the world — `UpdateSubMapCommon.FilterUpdates`
-(`:240546`) walks it backwards while building `addList`, and `ApplyAdd`
-(`:241602`) walks `addList` backwards — so insertion order survives and the
+(`:247644`) walks it backwards while building `addList`, and `ApplyAdd`
+(`:248700`) walks `addList` backwards — so insertion order survives and the
 bridge is applied first. That is what `GetNeededTile(rail)` requires: a rail
-needs `ground` or `bridge` (`Pug.Base:18124`). A single added reversal anywhere
+needs `ground` or `bridge` (`Pug.Base:19970`). A single added reversal anywhere
 in that chain would invert this; re-check after game updates.
 
 ### Why `DisableBurstForSystemAndJobs`, not the plain variant
 
-`EquipmentUpdateSystem` (`Pug.Other:419765`) does its work in a nested
-`UpdateJob` carrying its own `[BurstCompile]` (`:419767`), and that job is what
-calls `PlaceObjectSlot.UpdateEquipment` (`:419898`). The plain
+`EquipmentUpdateSystem` (`Pug.Other:437752`) does its work in a nested
+`UpdateJob` carrying its own `[BurstCompile]` (`:437754`), and that job is what
+calls `PlaceObjectSlot.UpdateEquipment` (`:437886`). The plain
 `DisableBurstForSystem` un-Bursts only the system shell, leaving the job Bursted,
 so every patch on a method reached from the job stays dead. Verified in-game
 2026-08-08: with the plain variant **no** hook fired at all.
 
 The two variants differ by exactly one thing, and it is not a thoroughness bonus
 — it is the mechanism. `AndJobs` adds a postfix calling
-`state.Dependency.Complete()` (`PugMod.SDK.Runtime:924`, applied via
-`CompleteDependencyAfterUpdatePatch` at `:943`). The bypass itself is a *window*:
+`state.Dependency.Complete()` (`PugMod.SDK.Runtime:938`, applied via
+`CompleteDependencyAfterUpdatePatch` at `:957`). The bypass itself is a *window*:
 a prefix/postfix pair on `Unity.Entities.WorldUnmanagedImpl.UpdateSystem`
-(`:960`) flips `BurstCompiler.Options.EnableBurstCompilation` off for the
+(`:974`) flips `BurstCompiler.Options.EnableBurstCompilation` off for the
 duration of that one system's update and restores it right after. An async job is
 *scheduled* inside that window but *runs* after it, once Burst is back on — so it
 stays Bursted and patches on anything it reaches never bind. `Complete()` drags
@@ -160,8 +160,8 @@ Cost in practice here: no perceptible impact (observed, never profiled —
 fires on every single placement. Two properties keep it cheap and both must be
 re-checked before assuming the same for another system: the query iterates player
 entities only (`EquipmentUpdateAspect` requires `ClientInput`, `PlayerStateCD`,
-`PlayerGhost` — `Pug.Other:419114`), and the job is scheduled with `Schedule()`,
-not `ScheduleParallel()` (`:420660`), so it was single-threaded anyway and
+`PlayerGhost` — `Pug.Other:437116`), and the job is scheduled with `Schedule()`,
+not `ScheduleParallel()` (`:438664`), so it was single-threaded anyway and
 `Complete()` costs only the frame overlap. PlacementPlus un-Bursts the same system
 with the same call, and running both at once was equally unremarkable; double
 registration is harmless (the registry is a `HashSet`, a second `Complete()` is a

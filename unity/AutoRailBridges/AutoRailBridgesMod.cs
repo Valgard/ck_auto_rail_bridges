@@ -41,8 +41,8 @@ namespace AutoRailBridges
         public void Init()
         {
             // EquipmentUpdateSystem does its work in a nested UpdateJob that carries its own
-            // [BurstCompile] (Pug.Other:419767); that job is what calls PlaceObjectSlot
-            // .UpdateEquipment (:419898). The plain DisableBurstForSystem un-Bursts only the system
+            // [BurstCompile] (Pug.Other:437754); that job is what calls PlaceObjectSlot
+            // .UpdateEquipment (:437886). The plain DisableBurstForSystem un-Bursts only the system
             // shell, leaving the job Bursted, so every Harmony patch on a method reached from the
             // job stays dead. Verified in-game 2026-08-08: with the plain variant no hook fired at
             // all; with ...AndJobs the log shows "BurstDisabler: Patched OnUpdate on

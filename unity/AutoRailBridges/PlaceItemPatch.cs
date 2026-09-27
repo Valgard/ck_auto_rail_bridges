@@ -31,15 +31,15 @@ namespace AutoRailBridges
     /// bridge, until the inventory runs out.
     ///
     /// Ordering: both tiles go into one TileUpdateBuffer, bridge first. The buffer is reversed
-    /// TWICE on its way into the world — UpdateSubMapCommon.FilterUpdates (:240546) walks it
-    /// backwards while building addList, and ApplyAdd (:241602) walks addList backwards — so
+    /// TWICE on its way into the world — UpdateSubMapCommon.FilterUpdates (:247644) walks it
+    /// backwards while building addList, and ApplyAdd (:248700) walks addList backwards — so
     /// insertion order survives and the bridge is applied first. That is what GetNeededTile(rail)
-    /// requires: a rail needs `ground` or `bridge` (Pug.Base:18124). A single added reversal
+    /// requires: a rail needs `ground` or `bridge` (Pug.Base:19970). A single added reversal
     /// anywhere in that chain would invert this; re-check after game updates.
     ///
     /// When no bridge is carried, this mod deliberately does nothing and lets the rail drop as a
     /// pickup item. Suppressing the AddTile call would be worse, not better: both vanilla
-    /// (Pug.Other:311379/311382) and PlacementPlus (:276/:283) debit the item *after* calling
+    /// (Pug.Other:322046/322049) and PlacementPlus (:276/:283) debit the item *after* calling
     /// AddTile, so a blocked tile would still cost the rail — turning a cosmetic annoyance into
     /// actual item loss.
     /// </summary>
@@ -125,7 +125,7 @@ namespace AutoRailBridges
                 return;
 
             // Mirror exactly what ApplyAdd will check for a rail: `ground` OR `bridge`
-            // (Pug.Base:18124). IsWalkableTile() would be a wider set — it also accepts floor,
+            // (Pug.Base:19970). IsWalkableTile() would be a wider set — it also accepts floor,
             // rug, litFloor, looseFlooring and rail itself.
             TileAccessor tiles = _ctx.sharedData.tileAccessor;
             if (tiles.HasType(position, TileType.ground) || tiles.HasType(position, TileType.bridge))
@@ -142,7 +142,7 @@ namespace AutoRailBridges
             EntityUtility.AddTile(bridgeTileset, TileType.bridge, position, isWorldModeCreative, tileUpdateBuffer);
 
             // optionalTargetObjectID is mandatory here, not optional. InventoryUtility
-            // .ConsumeEntityAt (Pug.Other:409860) compares the slot's objectID against it ONLY
+            // .ConsumeEntityAt (Pug.Other:427792) compares the slot's objectID against it ONLY
             // when it is set; left at None, a queued inventory operation that changed that slot
             // first would make this consume whatever is now there. With it set, a mismatch fails
             // the consume instead — the bridge tile is then placed without a debit, which is the
