@@ -44,6 +44,8 @@ as your bridges last.
 
 ## Requirements
 
+Requires **Core Keeper 1.3** — version 1.0.1 is the last for Core Keeper 1.2.
+
 Requires **CoreLib** and **Mod Settings Menu** — mod.io will prompt you to
 install them when you subscribe.
 

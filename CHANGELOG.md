@@ -3,6 +3,15 @@
 All notable changes to this mod are documented here. The publish pipeline
 reads the topmost `## [x.y.z]` entry as the version to publish.
 
+## [1.1.0] - 2026-09-28
+
+Works with Core Keeper 1.3. The update had stopped the mod from loading at all,
+so rails could not be placed over a pit or water any more.
+
+### Changed
+- **Requires Core Keeper 1.3.** This version does not run on 1.2 any more; stay
+  on 1.0.1 for a 1.2 game.
+
 ## [1.0.1] - 2026-08-10
 
 ### Fixed

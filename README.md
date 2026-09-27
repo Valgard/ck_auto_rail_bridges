@@ -14,7 +14,8 @@ Personal-use, non-commercial (Pugstorm EULA).
 - **mod.io:** subscribe to the mod; Core Keeper downloads it on next launch.
 - **Local build:** see `CLAUDE.md` → *Build and deploy*.
 
-Requires **CoreLib** and **Mod Settings Menu**.
+Requires **Core Keeper 1.3** (verified on 1.3.0.2; version 1.0.1 is the last
+for 1.2), **CoreLib** and **Mod Settings Menu**.
 
 ## Usage
 
