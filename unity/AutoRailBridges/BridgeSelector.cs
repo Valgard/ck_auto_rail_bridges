@@ -5,7 +5,7 @@ namespace AutoRailBridges
 {
     /// <summary>
     /// Decides WHICH bridge to spend. This is the only file that knows the order, so making the
-    /// order configurable (v1.1, once Mod Settings Menu can declare a string/list setting) is a
+    /// order configurable (a later version, once Mod Settings Menu can declare a list setting) is a
     /// change confined to this class.
     ///
     /// The inventory read needs no extra plumbing: LookupEquipmentUpdateData already carries

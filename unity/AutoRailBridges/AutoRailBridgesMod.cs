@@ -23,7 +23,7 @@ namespace AutoRailBridges
         public void EarlyInit()
         {
             // RequiresRestart: honest about the bake-time half (RailPlacementPropertyPatch) even
-            // though the runtime half (PlaceItemPatch's Hook 2/3) actually responds immediately —
+            // though the runtime half (PlaceItemPatch) actually responds immediately —
             // matches RebalanceKeyCrafting's own bake-time `enabled` toggle for the same reason.
             ModSettings
                 .Section(this)

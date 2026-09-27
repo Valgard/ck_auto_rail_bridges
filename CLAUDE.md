@@ -76,9 +76,16 @@ patch landed. Note the two list properties are passed **crossed** into
 `ShouldCheckPlaceObjectOnTile`: hash `-789473209` is the allow list,
 `1757427560` the veto list. Reading them in declaration order gets it backwards.
 
-The authoring-side converter is the wrong hook: `PlaceableObjectConverter.Convert`
-is editor-only and fires **zero** times in the shipped game. `PostConvert` is
-what runs per world/database conversion.
+The edit lands in `PugDatabasePostConverter.PostConvert`, and it takes effect one
+conversion late. `PlaceableObjectConverter.Convert` copies the list into the
+object's properties, and every converter runs before any final-world
+post-converter (`PugConversion:766-805`), so each world has already captured
+Rail's properties when the prefix edits the prefab. The edit reaches the *next*
+world that converts the same prefab. That is enough because `ECSManager` converts
+the Default World first and the ServerWorld and ClientWorld afterwards — the
+Default World keeps the unpatched list. Verified on 1.3.0.2 in a host session;
+whether a dedicated server converts the Default World first is not verified. The
+class comment on `RailPlacementPropertyPatch` has the citations.
 
 ### Why the context comes from `UpdateEquipment` and the work happens in `AddTile`
 
@@ -134,9 +141,10 @@ so every patch on a method reached from the job stays dead. Verified in-game
 2026-08-08: with the plain variant **no** hook fired at all.
 
 The two variants differ by exactly one thing, and it is not a thoroughness bonus
-— it is the mechanism. `AndJobs` adds a postfix calling
-`state.Dependency.Complete()` (`PugMod.SDK.Runtime:938`, applied via
-`CompleteDependencyAfterUpdatePatch` at `:957`). The bypass itself is a *window*:
+— it is the mechanism. `AndJobs` adds a postfix
+(`CreateCompleteDependencyPatch`, `PugMod.SDK.Runtime:938`) whose body calls
+`state.Dependency.Complete()` (`CompleteDependencyAfterUpdatePatch`,
+`:957`/`:961`). The bypass itself is a *window*:
 a prefix/postfix pair on `Unity.Entities.WorldUnmanagedImpl.UpdateSystem`
 (`:974`) flips `BurstCompiler.Options.EnableBurstCompilation` off for the
 duration of that one system's update and restores it right after. An async job is
