@@ -83,9 +83,11 @@ post-converter (`PugConversion:766-805`), so each world has already captured
 Rail's properties when the prefix edits the prefab. The edit reaches the *next*
 world that converts the same prefab. That is enough because `ECSManager` converts
 the Default World first and the ServerWorld and ClientWorld afterwards — the
-Default World keeps the unpatched list. Verified on 1.3.0.2 in a host session;
-whether a dedicated server converts the Default World first is not verified. The
-class comment on `RailPlacementPropertyPatch` has the citations.
+Default World keeps the unpatched list. Verified on 1.3.0.2 in a host session. A
+dedicated server converts the Default World first as well, but the edit's effect
+there has not been measured. The class comment on `RailPlacementPropertyPatch`
+has the citations; the general mechanism is in the parent handbook's
+`docs/ck/world-and-mechanics.md`.
 
 ### Why the context comes from `UpdateEquipment` and the work happens in `AddTile`
 

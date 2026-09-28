@@ -31,8 +31,9 @@ namespace AutoRailBridges
     /// ECSManager converts the Default World first (Pug.Other:2345-2356), then the ServerWorld and
     /// ClientWorld during StartEcs — so the worlds a player actually plays in see the edited list.
     /// The Default World itself keeps the unpatched one, and so does anything that reads Rail's
-    /// properties from it. Verified on 1.3.0.2 with a host session; whether a dedicated server also
-    /// converts the Default World first is not verified.
+    /// properties from it. Verified on 1.3.0.2 with a host session. A dedicated server converts the
+    /// Default World first too (its ECSManager.Init, server Pug.Other:2334, and its log agree), but
+    /// the edit's effect there has not been measured.
     ///
     /// Finding the rail: vanilla PostConvert reads the prefabs from
     /// ScriptableData.GetDataBlocks&lt;EntityAuthoringDataBlock&gt;() (Pug.Other:3513) and the
