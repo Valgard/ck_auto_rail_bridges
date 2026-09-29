@@ -222,8 +222,8 @@ can carry a video only as a linked YouTube upload.
 
 Deployed through the fake-mod.io workaround (see parent `../CLAUDE.md`). This
 mod's fake mod.io ID is **`9999988`**. Do not open the in-game Mods menu while a
-fake-ID install is active; re-run `../utils/build.sh` to restore if the cache is
-wiped.
+fake-ID install is active; re-run `../utils/build.sh` after any visit to it,
+because merely opening it unregisters the install even though its files stay.
 
 To test coexistence with another installed mod, toggle it through
 `state.json:disabledMods` rather than renaming its directory.
