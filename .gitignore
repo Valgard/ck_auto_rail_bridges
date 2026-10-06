@@ -41,3 +41,5 @@ unity/AutoRailBridges/Editor/LocalizationGenerator.cs.meta
 
 # Superpowers scratch (plans, brainstorming) — never committed
 docs/superpowers/
+# Superpowers subagent-run workspace (ledger, briefs, reports) — never committed
+/.superpowers/
