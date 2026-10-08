@@ -50,7 +50,7 @@ half means rails drop as items.
   in `EarlyInit` (see below) and calls
   `BurstDisabler.DisableBurstForSystemAndJobs<EquipmentUpdateSystem>()` in
   `Init`, followed by a manual `BurstDisabler.AddWorld` pass over `World.All`
-  (see below — without it the hooks are dead on a dedicated server). Harmony
+  (see below — without it the hooks were dead on a 1.2 dedicated server). Harmony
   patch classes are auto-discovered; there is no `PatchAll`.
 - **`RailPlacementPropertyPatch`** — prefix on
   `PugDatabasePostConverter.PostConvert`, adds `ObjectID.Pit` and
@@ -181,15 +181,21 @@ Choosing the right variant is only half of it — the registration has to reach 
 world as well, which is why `Init` follows it with a manual
 `BurstDisabler.AddWorld` pass over `World.All`. `AddWorld`'s sole caller is
 `ECSManager.StartEcs`, and it **snapshots** whatever is registered at that
-moment; a dedicated server runs `IMod.Init()` *after* `StartEcs`, so the snapshot
-was empty, the job stayed Bursted and the hooks were dead again — the exact
-2026-08-08 symptom, but only in multiplayer. Beware the misleading evidence here:
+moment; through 1.2 a dedicated server ran `IMod.Init()` *after* `StartEcs`, so
+the snapshot was empty, the job stayed Bursted and the hooks were dead again — the
+exact 2026-08-08 symptom, but only on a dedicated server. A freshly started
+1.3.0.5 server runs `Init()` before that snapshot, but the SDK promises no
+ordering and the mod is still tagged for 1.2, so the pass stays unconditional.
+Beware the misleading evidence here:
 the `BurstDisabler: Patched OnUpdate on EquipmentUpdateSystem for job burst
 disabling` line **does appear** in the server log even while the bypass is
 inactive, because it comes from the `AndJobs` variant's dependency patch, which
-is applied regardless of the snapshot. The pass is a no-op in the client
-ordering, and `EarlyInit()` is not an alternative — `TypeManager` is not
-initialised that early. Full mechanism in the parent `../CLAUDE.md`.
+is applied regardless of the snapshot. The pass is harmless in the client
+ordering — not because the registry is a set, but because `AddWorld` only inserts
+a handle for a world that contains the system, and on 1.3 `StartEcs` resets and
+re-arms its worlds afterwards anyway. `EarlyInit()` is not an alternative —
+`TypeManager` is not initialised that early. Full mechanism in the parent
+handbook's `docs/ck/harmony-and-ecs.md` (§ The dedicated-server trap).
 
 ### Why the settings section registers in `EarlyInit`
 

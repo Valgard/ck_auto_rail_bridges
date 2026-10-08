@@ -51,12 +51,15 @@ namespace AutoRailBridges
 
             // ...and that registration only takes effect for worlds BurstDisabler.AddWorld has
             // already seen. Its sole caller is ECSManager.StartEcs, which snapshots whatever is
-            // registered at that moment, and a dedicated server runs IMod.Init() *after* StartEcs —
-            // so there the snapshot was empty, the job stayed Bursted and the hooks were dead
-            // again, exactly the 2026-08-08 symptom but only in multiplayer. Note the
+            // registered at that moment, and through 1.2 a dedicated server ran IMod.Init() *after*
+            // StartEcs — so there the snapshot was empty, the job stayed Bursted and the hooks were
+            // dead again, exactly the 2026-08-08 symptom but only on a dedicated server. A fresh
+            // 1.3.0.5 server runs Init() before that snapshot, but the SDK promises no ordering and
+            // the mod is still tagged for 1.2, so the pass stays. Note the
             // "Patched OnUpdate ... for job burst disabling" log line does NOT prove the bypass is
             // armed: it comes from the AndJobs variant's dependency patch, which is set regardless.
-            // No-op on the client, where Init() runs first; the registry is a set.
+            // Harmless where Init() runs first: AddWorld only inserts a handle for a world that
+            // contains the system, and on 1.3 StartEcs resets and re-arms its worlds afterwards.
             foreach (var world in World.All)
                 BurstDisabler.AddWorld(world);
         }
