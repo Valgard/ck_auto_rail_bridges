@@ -22,9 +22,10 @@ namespace AutoRailBridges
     /// TileUpdateBuffer, and that is the one utility that does it — PlacementPlus calls it too
     /// (ObjectPlacementLogic.cs:276 and :555). A mod can replace the decision of *whether and
     /// where* to place without replacing the act of placing. So AddTile is where this mod does its
-    /// work, and UpdateEquipment — which runs in both worlds, ours and PlacementPlus's, because
-    /// HarmonyPriority.First puts our prefix ahead of theirs — is only there to hand it the
-    /// context AddTile's own parameters do not carry: which player, which inventory, which tiles.
+    /// work, and UpdateEquipment — whose prefixes all run in both worlds, ours and PlacementPlus's,
+    /// since a prefix returning false skips only the original, not the other prefixes — is only
+    /// there to hand it the context AddTile's own parameters do not carry: which player, which
+    /// inventory, which tiles. HarmonyPriority.First merely orders our prefix ahead of theirs.
     ///
     /// Deciding per tile rather than per click is what makes PlacementPlus's grid mode work for
     /// free: every rail in a dragged rectangle arrives as its own AddTile call and gets its own
@@ -93,8 +94,8 @@ namespace AutoRailBridges
             };
         }
 
-        // Runs even when PlacementPlus's prefix returns false — Harmony skips remaining prefixes
-        // in that case, but never the postfixes.
+        // Runs even when PlacementPlus's prefix returns false — Harmony still runs every prefix,
+        // skips only the original method, and never the postfixes (0Harmony:10287-10323).
         [HarmonyPatch(typeof(PlaceObjectSlot), nameof(PlaceObjectSlot.UpdateEquipment))]
         [HarmonyPostfix]
         public static void AfterUpdateEquipment()

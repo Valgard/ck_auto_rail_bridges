@@ -135,3 +135,18 @@ The companion finding is that CK grants placement permission through
 those read `false` even on real bridges. The bake-time half of this mod
 (`RailPlacementPropertyPatch`) rests on that; `CLAUDE.md` § *Architecture* has
 the detail, including the crossed property hashes.
+
+> **Correction (2026-10-08):** the statement that Harmony "skips remaining
+> *prefixes* only" when a prefix returns `false` is backwards. Harmony runs
+> every prefix regardless, ANDs their results into `__runOriginal`, and skips
+> only the original method after the loop; postfixes still run
+> (`0Harmony:10287-10323`, `WritePrefixes`). The decision is unaffected — the
+> capture prefix and the clearing postfix run whether or not PlacementPlus's
+> prefix returns `false`, so the context is still bounded to one call. What was
+> wrong is the role given to `[HarmonyPriority(Priority.First)]`: it orders the
+> capture ahead of PlacementPlus's prefix but is not what lets it run, so the
+> "relies on Harmony priority" con and the "dependent on Harmony prefix
+> ordering" consequence overstate the dependency. Left standing above because a
+> decision record documents what was believed at the time; the mechanism is in
+> core_keeper's `docs/ck/harmony-and-ecs.md` (§ Patch the convergence point to
+> survive other mods).

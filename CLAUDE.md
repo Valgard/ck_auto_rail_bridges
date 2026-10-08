@@ -108,8 +108,13 @@ placing, short of reimplementing CK's tilemap layer.
 `AddTile`'s parameters carry no player and no inventory, which is what the
 `UpdateEquipment` prefix is for — it does nothing but capture aspect, shared data
 and lookups into a `[ThreadStatic]` struct. `[HarmonyPriority(Priority.First)]`
-puts it ahead of PlacementPlus's prefix; the matching postfix still runs even
-when a prefix returned `false`, because Harmony skips remaining *prefixes* only.
+puts it ahead of PlacementPlus's prefix, but it would run without that too: a
+prefix returning `false` skips neither the other prefixes nor the postfixes —
+Harmony runs every prefix, ANDs their results and skips only the original
+(`0Harmony:10287-10323`). So the matching postfix always runs, which is what
+bounds the context's lifetime to one call. The priority only orders the
+prefixes; see the parent handbook's `docs/ck/harmony-and-ecs.md` (§ Patch the
+convergence point to survive other mods).
 
 Deciding **per tile** rather than per click follows from this and covers grid
 placement for free: each rail in a dragged rectangle arrives as its own `AddTile`
